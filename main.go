@@ -71,6 +71,7 @@ func main() {
 	v1Router.Get("/api/team/get", apiCFG.handlerGetTeam)
 	v1Router.Post("/api/users/setIsActive", apiCFG.handlerSetIsActive)
 	v1Router.Post("/api/pullRequest/create", apiCFG.handlerCreatePR)
+	v1Router.Post("/api/pullRequest/merge", apiCFG.handlerMergePR)
 
 	router.Mount("/v1", v1Router)
 
