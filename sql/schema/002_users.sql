@@ -1,7 +1,7 @@
 -- +goose Up
 
 CREATE TABLE users (
-user_id UUID PRIMARY KEY,
+user_id TEXT PRIMARY KEY,
 username TEXT NOT NULL,
 team_name TEXT REFERENCES teams(team_name) ON DELETE SET NULL,
 is_active BOOLEAN NOT NULL DEFAULT TRUE

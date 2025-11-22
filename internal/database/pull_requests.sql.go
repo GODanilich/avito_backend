@@ -7,9 +7,60 @@ package database
 
 import (
 	"context"
-
-	"github.com/google/uuid"
+	"database/sql"
 )
+
+const createPR = `-- name: CreatePR :exec
+INSERT INTO pull_requests (pull_request_id, pull_request_name, author_id, status, created_at)
+VALUES ($1,$2,$3,'OPEN', NOW())
+`
+
+type CreatePRParams struct {
+	PullRequestID   string
+	PullRequestName string
+	AuthorID        string
+}
+
+func (q *Queries) CreatePR(ctx context.Context, arg CreatePRParams) error {
+	_, err := q.db.ExecContext(ctx, createPR, arg.PullRequestID, arg.PullRequestName, arg.AuthorID)
+	return err
+}
+
+const getActiveReviewersForTeam = `-- name: GetActiveReviewersForTeam :many
+SELECT user_id
+FROM users
+WHERE team_name = $1
+AND is_active = TRUE
+AND user_id <> $2
+`
+
+type GetActiveReviewersForTeamParams struct {
+	TeamName sql.NullString
+	UserID   string
+}
+
+func (q *Queries) GetActiveReviewersForTeam(ctx context.Context, arg GetActiveReviewersForTeamParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveReviewersForTeam, arg.TeamName, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const getPR = `-- name: GetPR :one
 SELECT pull_request_id, pull_request_name, author_id, status, created_at, merged_at
@@ -17,7 +68,7 @@ FROM pull_requests
 WHERE pull_request_id = $1
 `
 
-func (q *Queries) GetPR(ctx context.Context, pullRequestID uuid.UUID) (PullRequest, error) {
+func (q *Queries) GetPR(ctx context.Context, pullRequestID string) (PullRequest, error) {
 	row := q.db.QueryRowContext(ctx, getPR, pullRequestID)
 	var i PullRequest
 	err := row.Scan(
@@ -31,22 +82,6 @@ func (q *Queries) GetPR(ctx context.Context, pullRequestID uuid.UUID) (PullReque
 	return i, err
 }
 
-const insertPR = `-- name: InsertPR :exec
-INSERT INTO pull_requests (pull_request_id, pull_request_name, author_id, status)
-VALUES ($1,$2,$3,'OPEN')
-`
-
-type InsertPRParams struct {
-	PullRequestID   uuid.UUID
-	PullRequestName string
-	AuthorID        uuid.UUID
-}
-
-func (q *Queries) InsertPR(ctx context.Context, arg InsertPRParams) error {
-	_, err := q.db.ExecContext(ctx, insertPR, arg.PullRequestID, arg.PullRequestName, arg.AuthorID)
-	return err
-}
-
 const setPRMerged = `-- name: SetPRMerged :one
 UPDATE pull_requests
 SET status='MERGED', merged_at = now()
@@ -54,7 +89,7 @@ WHERE pull_request_id = $1
 RETURNING pull_request_id, pull_request_name, author_id, status, created_at, merged_at
 `
 
-func (q *Queries) SetPRMerged(ctx context.Context, pullRequestID uuid.UUID) (PullRequest, error) {
+func (q *Queries) SetPRMerged(ctx context.Context, pullRequestID string) (PullRequest, error) {
 	row := q.db.QueryRowContext(ctx, setPRMerged, pullRequestID)
 	var i PullRequest
 	err := row.Scan(

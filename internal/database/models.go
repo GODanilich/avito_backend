@@ -8,8 +8,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 type PrStatus string
@@ -55,17 +53,17 @@ func (ns NullPrStatus) Value() (driver.Value, error) {
 }
 
 type PullRequest struct {
-	PullRequestID   uuid.UUID
+	PullRequestID   string
 	PullRequestName string
-	AuthorID        uuid.UUID
+	AuthorID        string
 	Status          PrStatus
 	CreatedAt       sql.NullTime
 	MergedAt        sql.NullTime
 }
 
 type PullRequestReviewer struct {
-	PullRequestID uuid.UUID
-	UserID        uuid.UUID
+	PullRequestID string
+	UserID        string
 }
 
 type Team struct {
@@ -73,7 +71,7 @@ type Team struct {
 }
 
 type User struct {
-	UserID   uuid.UUID
+	UserID   string
 	Username string
 	TeamName sql.NullString
 	IsActive bool

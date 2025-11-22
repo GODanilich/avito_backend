@@ -1,5 +1,5 @@
 -- name: GetTeamMembers :many
-SELECT u.user_id, u.username, u.is_active
+SELECT *
 FROM users u
 WHERE u.team_name = $1
 ORDER BY u.user_id;

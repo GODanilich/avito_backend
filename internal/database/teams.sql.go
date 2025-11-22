@@ -8,8 +8,6 @@ package database
 import (
 	"context"
 	"database/sql"
-
-	"github.com/google/uuid"
 )
 
 const createTeam = `-- name: CreateTeam :exec
@@ -33,28 +31,27 @@ func (q *Queries) GetTeam(ctx context.Context, teamName string) (string, error) 
 }
 
 const getTeamMembers = `-- name: GetTeamMembers :many
-SELECT u.user_id, u.username, u.is_active
+SELECT user_id, username, team_name, is_active
 FROM users u
 WHERE u.team_name = $1
 ORDER BY u.user_id
 `
 
-type GetTeamMembersRow struct {
-	UserID   uuid.UUID
-	Username string
-	IsActive bool
-}
-
-func (q *Queries) GetTeamMembers(ctx context.Context, teamName sql.NullString) ([]GetTeamMembersRow, error) {
+func (q *Queries) GetTeamMembers(ctx context.Context, teamName sql.NullString) ([]User, error) {
 	rows, err := q.db.QueryContext(ctx, getTeamMembers, teamName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetTeamMembersRow
+	var items []User
 	for rows.Next() {
-		var i GetTeamMembersRow
-		if err := rows.Scan(&i.UserID, &i.Username, &i.IsActive); err != nil {
+		var i User
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Username,
+			&i.TeamName,
+			&i.IsActive,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

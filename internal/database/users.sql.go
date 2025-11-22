@@ -8,8 +8,6 @@ package database
 import (
 	"context"
 	"database/sql"
-
-	"github.com/google/uuid"
 )
 
 const getUserById = `-- name: GetUserById :one
@@ -18,7 +16,7 @@ FROM users u
 WHERE u.user_id = $1
 `
 
-func (q *Queries) GetUserById(ctx context.Context, userID uuid.UUID) (User, error) {
+func (q *Queries) GetUserById(ctx context.Context, userID string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, userID)
 	var i User
 	err := row.Scan(
@@ -38,7 +36,7 @@ RETURNING user_id, username, team_name, is_active
 `
 
 type SetUserActiveParams struct {
-	UserID   uuid.UUID
+	UserID   string
 	IsActive bool
 }
 
@@ -62,7 +60,7 @@ SET username = EXCLUDED.username, team_name = EXCLUDED.team_name, is_active = EX
 `
 
 type UpsertUserParams struct {
-	UserID   uuid.UUID
+	UserID   string
 	Username string
 	TeamName sql.NullString
 	IsActive bool

@@ -7,8 +7,6 @@ package database
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 const addReviewer = `-- name: AddReviewer :exec
@@ -17,8 +15,8 @@ VALUES ($1, $2) ON CONFLICT DO NOTHING
 `
 
 type AddReviewerParams struct {
-	PullRequestID uuid.UUID
-	UserID        uuid.UUID
+	PullRequestID string
+	UserID        string
 }
 
 func (q *Queries) AddReviewer(ctx context.Context, arg AddReviewerParams) error {
@@ -33,15 +31,15 @@ WHERE r.pull_request_id = $1
 ORDER BY u.user_id
 `
 
-func (q *Queries) GetPRReviewers(ctx context.Context, pullRequestID uuid.UUID) ([]uuid.UUID, error) {
+func (q *Queries) GetPRReviewers(ctx context.Context, pullRequestID string) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, getPRReviewers, pullRequestID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []uuid.UUID
+	var items []string
 	for rows.Next() {
-		var user_id uuid.UUID
+		var user_id string
 		if err := rows.Scan(&user_id); err != nil {
 			return nil, err
 		}
@@ -65,13 +63,13 @@ ORDER BY p.created_at DESC
 `
 
 type GetPRsForReviewerRow struct {
-	PullRequestID   uuid.UUID
+	PullRequestID   string
 	PullRequestName string
-	AuthorID        uuid.UUID
+	AuthorID        string
 	Status          PrStatus
 }
 
-func (q *Queries) GetPRsForReviewer(ctx context.Context, userID uuid.UUID) ([]GetPRsForReviewerRow, error) {
+func (q *Queries) GetPRsForReviewer(ctx context.Context, userID string) ([]GetPRsForReviewerRow, error) {
 	rows, err := q.db.QueryContext(ctx, getPRsForReviewer, userID)
 	if err != nil {
 		return nil, err
@@ -105,8 +103,8 @@ WHERE pull_request_id = $1 AND user_id = $2
 `
 
 type ReplaceReviewerParams struct {
-	PullRequestID uuid.UUID
-	UserID        uuid.UUID
+	PullRequestID string
+	UserID        string
 }
 
 func (q *Queries) ReplaceReviewer(ctx context.Context, arg ReplaceReviewerParams) error {
