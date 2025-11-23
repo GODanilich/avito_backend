@@ -62,6 +62,48 @@ func (q *Queries) GetActiveReviewersForTeam(ctx context.Context, arg GetActiveRe
 	return items, nil
 }
 
+const getEligibleReassignReviewers = `-- name: GetEligibleReassignReviewers :many
+SELECT u.user_id
+FROM users u
+WHERE u.team_name = $1
+  AND u.is_active = TRUE
+  AND u.user_id <> $2
+  AND u.user_id NOT IN (
+      SELECT prr.user_id
+      FROM pull_request_reviewers prr
+      WHERE prr.pull_request_id = $3
+  )
+`
+
+type GetEligibleReassignReviewersParams struct {
+	TeamName      sql.NullString
+	UserID        string
+	PullRequestID string
+}
+
+func (q *Queries) GetEligibleReassignReviewers(ctx context.Context, arg GetEligibleReassignReviewersParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getEligibleReassignReviewers, arg.TeamName, arg.UserID, arg.PullRequestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPR = `-- name: GetPR :one
 SELECT pull_request_id, pull_request_name, author_id, status, created_at, merged_at
 FROM pull_requests
@@ -80,6 +122,19 @@ func (q *Queries) GetPR(ctx context.Context, pullRequestID string) (PullRequest,
 		&i.MergedAt,
 	)
 	return i, err
+}
+
+const isMerged = `-- name: IsMerged :one
+SELECT COUNT(*) > 0
+FROM pull_requests
+WHERE pull_request_id = $1 AND status ='MERGED'
+`
+
+func (q *Queries) IsMerged(ctx context.Context, pullRequestID string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isMerged, pullRequestID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const setPRMerged = `-- name: SetPRMerged :one

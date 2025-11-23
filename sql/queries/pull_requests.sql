@@ -20,3 +20,20 @@ FROM users
 WHERE team_name = $1
 AND is_active = TRUE
 AND user_id <> $2;
+
+-- name: IsMerged :one
+SELECT COUNT(*) > 0
+FROM pull_requests
+WHERE pull_request_id = $1 AND status ='MERGED';
+
+-- name: GetEligibleReassignReviewers :many
+SELECT u.user_id
+FROM users u
+WHERE u.team_name = $1
+  AND u.is_active = TRUE
+  AND u.user_id <> $2
+  AND u.user_id NOT IN (
+      SELECT prr.user_id
+      FROM pull_request_reviewers prr
+      WHERE prr.pull_request_id = $3
+  );

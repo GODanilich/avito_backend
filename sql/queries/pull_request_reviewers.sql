@@ -10,12 +10,9 @@ WHERE r.pull_request_id = $1
 ORDER BY u.user_id;
 
 
--- name: ReplaceReviewer :exec
+-- name: DeleteReviewer :exec
 DELETE FROM pull_request_reviewers
 WHERE pull_request_id = $1 AND user_id = $2;
-INSERT INTO pull_request_reviewers (pull_request_id, user_id)
-VALUES ($1, $3);
-
 
 -- name: GetPRsForReviewer :many
 SELECT p.pull_request_id, p.pull_request_name, p.author_id, p.status
@@ -23,3 +20,8 @@ FROM pull_requests p
 JOIN pull_request_reviewers r ON p.pull_request_id = r.pull_request_id
 WHERE r.user_id = $1
 ORDER BY p.created_at DESC;
+
+-- name: IsReviewerAssigned :one
+SELECT COUNT(*) > 0
+FROM pull_request_reviewers
+WHERE pull_request_id = $1 AND user_id = $2;

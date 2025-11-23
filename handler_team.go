@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -14,27 +13,40 @@ type TeamStruct struct {
 	Members  []UserWithoutTeam `json:"members"`
 }
 
-// handlerMakeTransaction handles a POST api/send endpoint.
-// Takes json with fields "from", "to", "amount" as a request body
-// and returns json representation of created transaction in response
 func (apiCFG *apiConfig) handlerAddTeam(w http.ResponseWriter, r *http.Request) {
 
 	// parameters of JSON request body
-	type parameters struct {
-		Team  string            `json:"team_name"`
-		Users []UserWithoutTeam `json:"members"`
+	type requestBody struct {
+		TeamName string            `json:"team_name"`
+		Members  []UserWithoutTeam `json:"members"`
 	}
 
 	// decoding JSON request body into params
 	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
+	params := requestBody{}
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Error parsing JSON", fmt.Sprint(err))
 		return
 	}
 
-	_, err = apiCFG.DB.GetTeam(r.Context(), params.Team)
+	if params.TeamName == "" {
+		respondWithError(w, http.StatusBadRequest, "BAD_REQUEST", "team_name is required")
+		return
+	}
+
+	for _, user := range params.Members {
+		if user.UserID == "" {
+			respondWithError(w, http.StatusBadRequest, "INVALID_USER_ID", "user_id cannot be empty")
+			return
+		}
+		if user.Username == "" {
+			respondWithError(w, http.StatusBadRequest, "INVALID_USERNAME", "username cannot be empty")
+			return
+		}
+	}
+
+	_, err = apiCFG.DB.GetTeam(r.Context(), params.TeamName)
 	if err == nil {
 		respondWithError(w, http.StatusBadRequest, "TEAM_EXISTS", "team_name already exists")
 		return
@@ -52,18 +64,18 @@ func (apiCFG *apiConfig) handlerAddTeam(w http.ResponseWriter, r *http.Request) 
 
 	defer tx.Rollback()
 
-	err = apiCFG.DB.WithTx(tx).CreateTeam(r.Context(), params.Team)
+	err = apiCFG.DB.WithTx(tx).CreateTeam(r.Context(), params.TeamName)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "DB_ERROR", err.Error())
 		return
 	}
 
-	for _, user := range params.Users {
+	for _, user := range params.Members {
 		err = apiCFG.DB.WithTx(tx).UpsertUser(r.Context(), database.UpsertUserParams{
 			UserID:   user.UserID,
 			Username: user.Username,
 			TeamName: sql.NullString{
-				String: params.Team,
+				String: params.TeamName,
 				Valid:  true,
 			},
 			IsActive: user.IsActive,
@@ -80,17 +92,9 @@ func (apiCFG *apiConfig) handlerAddTeam(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response := struct {
-		Team TeamStruct `json:"team"`
-	}{Team: TeamStruct{
-		TeamName: params.Team,
-		Members:  params.Users,
-	},
-	}
-
-	log.Printf("response is %v", response)
-
-	respondWithJSON(w, http.StatusCreated, response)
+	respondWithJSON(w, http.StatusCreated, map[string]interface{}{
+		"team": params,
+	})
 
 }
 

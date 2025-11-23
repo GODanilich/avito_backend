@@ -24,6 +24,21 @@ func (q *Queries) AddReviewer(ctx context.Context, arg AddReviewerParams) error 
 	return err
 }
 
+const deleteReviewer = `-- name: DeleteReviewer :exec
+DELETE FROM pull_request_reviewers
+WHERE pull_request_id = $1 AND user_id = $2
+`
+
+type DeleteReviewerParams struct {
+	PullRequestID string
+	UserID        string
+}
+
+func (q *Queries) DeleteReviewer(ctx context.Context, arg DeleteReviewerParams) error {
+	_, err := q.db.ExecContext(ctx, deleteReviewer, arg.PullRequestID, arg.UserID)
+	return err
+}
+
 const getPRReviewers = `-- name: GetPRReviewers :many
 SELECT u.user_id FROM users u
 JOIN pull_request_reviewers r ON u.user_id = r.user_id
@@ -97,17 +112,20 @@ func (q *Queries) GetPRsForReviewer(ctx context.Context, userID string) ([]GetPR
 	return items, nil
 }
 
-const replaceReviewer = `-- name: ReplaceReviewer :exec
-DELETE FROM pull_request_reviewers
+const isReviewerAssigned = `-- name: IsReviewerAssigned :one
+SELECT COUNT(*) > 0
+FROM pull_request_reviewers
 WHERE pull_request_id = $1 AND user_id = $2
 `
 
-type ReplaceReviewerParams struct {
+type IsReviewerAssignedParams struct {
 	PullRequestID string
 	UserID        string
 }
 
-func (q *Queries) ReplaceReviewer(ctx context.Context, arg ReplaceReviewerParams) error {
-	_, err := q.db.ExecContext(ctx, replaceReviewer, arg.PullRequestID, arg.UserID)
-	return err
+func (q *Queries) IsReviewerAssigned(ctx context.Context, arg IsReviewerAssignedParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isReviewerAssigned, arg.PullRequestID, arg.UserID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
