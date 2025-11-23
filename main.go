@@ -66,17 +66,17 @@ func main() {
 
 	v1Router := chi.NewRouter()
 
-	v1Router.Get("/api/health", apiCFG.handlerHealth)
-	v1Router.Post("/api/team/add", apiCFG.handlerAddTeam)
-	v1Router.Get("/api/team/get", apiCFG.handlerGetTeam)
-	v1Router.Post("/api/users/setIsActive", apiCFG.handlerSetIsActive)
-	v1Router.Post("/api/pullRequest/create", apiCFG.handlerCreatePR)
-	v1Router.Post("/api/pullRequest/merge", apiCFG.handlerMergePR)
-	v1Router.Post("/api/pullRequest/reassign", apiCFG.handlerReassignPR)
-	v1Router.Get("/api/users/getReview", apiCFG.handlerGetReview)
-	v1Router.Get("/api/stats/get", apiCFG.handlerGetStats)
+	v1Router.Get("/health", apiCFG.handlerHealth)
+	v1Router.Post("/team/add", apiCFG.handlerAddTeam)
+	v1Router.Get("/team/get", apiCFG.handlerGetTeam)
+	v1Router.Post("/users/setIsActive", apiCFG.handlerSetIsActive)
+	v1Router.Post("/pullRequest/create", apiCFG.handlerCreatePR)
+	v1Router.Post("/pullRequest/merge", apiCFG.handlerMergePR)
+	v1Router.Post("/pullRequest/reassign", apiCFG.handlerReassignPR)
+	v1Router.Get("/users/getReview", apiCFG.handlerGetReview)
+	v1Router.Get("/stats/get", apiCFG.handlerGetStats)
 
-	router.Mount("/v1", v1Router)
+	router.Mount("/api/v1", v1Router)
 
 	// configuring HTTP server
 	srv := &http.Server{
