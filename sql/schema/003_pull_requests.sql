@@ -11,5 +11,10 @@ created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
 merged_at TIMESTAMP WITH TIME ZONE
 );
 
+CREATE INDEX idx_pull_requests_status ON pull_requests(status);
+CREATE INDEX idx_pull_requests_created_at ON pull_requests(created_at DESC);
+
 -- +goose Down
+DROP INDEX IF EXISTS idx_pull_requests_status;
+DROP INDEX IF EXISTS idx_pull_requests_created_at;
 DROP TABLE IF EXISTS pull_requests;
