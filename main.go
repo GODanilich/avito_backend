@@ -74,6 +74,7 @@ func main() {
 	v1Router.Post("/api/pullRequest/merge", apiCFG.handlerMergePR)
 	v1Router.Post("/api/pullRequest/reassign", apiCFG.handlerReassignPR)
 	v1Router.Get("/api/users/getReview", apiCFG.handlerGetReview)
+	v1Router.Get("/api/stats/get", apiCFG.handlerGetStats)
 
 	router.Mount("/v1", v1Router)
 
